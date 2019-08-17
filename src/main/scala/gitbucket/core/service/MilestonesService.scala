@@ -71,5 +71,30 @@ trait MilestonesService {
       .filter(_.byRepository(owner, repository))
       .sortBy(t => (t.dueDate.asc, t.closedDate.desc, t.milestoneId.desc))
       .list
+}
 
+object MilestonesService {
+  import javax.servlet.http.HttpServletRequest
+  case class MilestoneSearchCondition(
+    state: String = "open",
+    sort: String = "due_on",
+    direction: String = "asc"
+  )
+  object MilestoneSearchCondition {
+
+    private def param(request: HttpServletRequest, name: String, allow: Seq[String] = Nil): Option[String] = {
+      val value = request.getParameter(name)
+      if (value == null || value.isEmpty || (allow.nonEmpty && !allow.contains(value))) None else Some(value)
+    }
+
+    /**
+     * Restores MilestoneSearchCondition instance from request parameters.
+     */
+    def apply(request: HttpServletRequest): MilestoneSearchCondition =
+      MilestoneSearchCondition(
+        param(request, "state", Seq("open", "closed", "all")).getOrElse("open"),
+        param(request, "sort", Seq("due_on", "completeness")).getOrElse("due_on"),
+        param(request, "direction", Seq("asc", "desc")).getOrElse("asc")
+      )
+  }
 }

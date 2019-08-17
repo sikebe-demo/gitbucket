@@ -13,6 +13,7 @@ class ApiController
     with ApiIssueCommentControllerBase
     with ApiIssueControllerBase
     with ApiIssueLabelControllerBase
+    with ApiMilestoneControllerBase
     with ApiOrganizationControllerBase
     with ApiPullRequestControllerBase
     with ApiReleaseControllerBase
