@@ -4,6 +4,7 @@ import gitbucket.core.model.Milestone
 import gitbucket.core.model.Profile._
 import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.model.Profile.dateColumnType
+import gitbucket.core.service.MilestonesService.MilestoneSearchCondition
 
 trait MilestonesService {
 
@@ -52,6 +53,42 @@ trait MilestonesService {
       }
       .groupBy { t =>
         t.milestoneId -> t.closed
+      }
+      .map { case (t1, t2) => t1._1 -> t1._2 -> t2.length }
+      .list
+      .toMap
+
+    getMilestones(owner, repository).map { milestone =>
+      (
+        milestone,
+        counts.getOrElse((milestone.milestoneId, false), 0),
+        counts.getOrElse((milestone.milestoneId, true), 0)
+      )
+    }
+  }
+
+  def getMilestonesWithIssueCount(owner: String, repository: String, condition: MilestoneSearchCondition)(
+    implicit s: Session
+  ): List[(Milestone, Int, Int)] = {
+    val counts = Issues
+      .filter { t =>
+        t.byRepository(owner, repository) && (t.milestoneId.? isDefined)
+      }
+      .join(Milestones)
+      .on { (t1, t2) =>
+        t2.byMilestone(t1.userName, t1.repositoryName, t1.milestoneId)
+      }
+      .filter {
+        case (t1, t2) =>
+          condition.state match {
+            case "closed" => t2.closedDate.isDefined
+            case "all"    => t2.closedDate.isEmpty || t2.closedDate.isDefined
+            case _        => t2.closedDate.isEmpty
+          }
+      }
+      .groupBy {
+        case (t1, t2) =>
+          t1.milestoneId -> t1.closed
       }
       .map { case (t1, t2) => t1._1 -> t1._2 -> t2.length }
       .list

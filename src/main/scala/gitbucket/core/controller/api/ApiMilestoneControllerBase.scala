@@ -17,7 +17,7 @@ trait ApiMilestoneControllerBase extends ControllerBase {
   get("/api/v3/repos/:owner/:repository/milestones")(referrersOnly { repository =>
     val condition = MilestoneSearchCondition(request)
     val milestones: List[(Milestone, Int, Int)] =
-      getMilestonesWithIssueCount(repository.owner, repository.name)
+      getMilestonesWithIssueCount(repository.owner, repository.name, condition)
 
     JsonFormat(milestones.map {
       case (milestone, openIssues, closedIssue) =>
