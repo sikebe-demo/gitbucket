@@ -25,18 +25,57 @@ trait ApiRepositoryBranchControllerBase extends ControllerBase {
    * https://developer.github.com/v3/repos/branches/#list-branches
    */
   get("/api/v3/repos/:owner/:repository/branches")(referrersOnly { repository =>
-    Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
-      JsonFormat(
-        JGitUtil
-          .getBranches(
-            git = git,
-            defaultBranch = repository.repository.defaultBranch,
-            origin = repository.repository.originUserName.isEmpty
-          )
-          .map { br =>
-            ApiBranchForList(br.name, ApiBranchCommit(br.commitId))
+    val branches = params.get("protected") map (_.toBoolean) match {
+      case Some(true) =>
+        getProtectedBranchList(repository.owner, repository.name).toSeq
+      case Some(false) =>
+        getProtectedBranchList(repository.owner, repository.name).toSeq
+      case _ =>
+        getProtectedBranchList(repository.owner, repository.name).toSeq
+    }
+    Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) {
+      git =>
+        (for {
+          branches <- params.get("protected") map (_.toBoolean) match {
+            case Some(true) =>
+              getProtectedBranchList(repository.owner, repository.name).toSeq
+            case Some(false) =>
+              getProtectedBranchList(repository.owner, repository.name).toSeq
+            case _ =>
+              getProtectedBranchList(repository.owner, repository.name).toSeq
           }
-      )
+          br <- getBranches(
+            git,
+            repository.repository.defaultBranch,
+            repository.repository.originUserName.isEmpty
+          ).find(_.name == branches)
+        } yield {
+          val protection = getProtectedBranchInfo(repository.owner, repository.name, br.name)
+          JsonFormat(
+            ApiBranch(
+              br.name,
+              ApiBranchCommit(br.commitId)(RepositoryName(repository)),
+              ApiBranchProtection(protection)
+            )(RepositoryName(repository))
+          )
+        })
+      // JsonFormat(
+      //   JGitUtil
+      //     .getBranches(
+      //       git = git,
+      //       defaultBranch = repository.repository.defaultBranch,
+      //       origin = repository.repository.originUserName.isEmpty
+      //     )
+      //     .map { br =>
+      //       val protection = getProtectedBranchInfo(repository.owner, repository.name, br.name)
+      //       ApiBranchForList(
+      //         br.name,
+      //         ApiBranchCommit(br.commitId)(RepositoryName(repository)),
+      //         ApiBranchProtection(protection),
+      //         RepositoryName(repository)
+      //       )
+      //     }
+      // )
     }
   })
 
@@ -57,7 +96,11 @@ trait ApiRepositoryBranchControllerBase extends ControllerBase {
         } yield {
           val protection = getProtectedBranchInfo(repository.owner, repository.name, branch)
           JsonFormat(
-            ApiBranch(branch, ApiBranchCommit(br.commitId), ApiBranchProtection(protection))(RepositoryName(repository))
+            ApiBranch(
+              branch,
+              ApiBranchCommit(br.commitId)(RepositoryName(repository)),
+              ApiBranchProtection(protection)
+            )(RepositoryName(repository))
           )
         }) getOrElse NotFound()
     }
@@ -236,7 +279,11 @@ trait ApiRepositoryBranchControllerBase extends ControllerBase {
           } else {
             disableBranchProtection(repository.owner, repository.name, branch)
           }
-          JsonFormat(ApiBranch(branch, ApiBranchCommit(br.commitId), protection)(RepositoryName(repository)))
+          JsonFormat(
+            ApiBranch(branch, ApiBranchCommit(br.commitId)(RepositoryName(repository)), protection)(
+              RepositoryName(repository)
+            )
+          )
         }) getOrElse NotFound()
     }
   })
