@@ -1,0 +1,28 @@
+name: Bug report
+description: Create a report to help us improve
+title: "[BUG] "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: "### Before submitting an issue to GitBucket I have first:\n\n- [ ] read the [contribution guidelines](https://github.com/gitbucket/gitbucket/blob/master/.github/CONTRIBUTING.md)\n- [ ] searched for similar already existing issue\n- [ ] read the documentation and [wiki](https://github.com/gitbucket/gitbucket/wiki)\n\n<!--\n*(if you have performed all the above, remove the paragraph and continue describing the issue with template below)*\n-->"
+  - type: input
+    id: impacted_version
+    attributes:
+      label: Impacted version
+      description: "Please specify the impacted version."
+      placeholder: "e.g., v4.34.0"
+  - type: textarea
+    id: deployment_mode
+    attributes:
+      label: Deployment mode
+      description: "Explain here how you use GitBucket: standalone app, under webcontainer (which one), with an http frontend (nginx, httpd, ...)"
+      placeholder: "e.g., standalone app, nginx"
+  - type: textarea
+    id: problem_description
+    attributes:
+      label: Problem description
+      description: "Be as explicit as you can. Describe the problem and its symptoms. Explain how to reproduce. Attach whatever information that can help understanding the context (screen capture, log files)."
+      placeholder: "Describe the problem and its symptoms. Explain how to reproduce. Attach whatever information that can help understanding the context (screen capture, log files)."
